@@ -24,27 +24,20 @@ pub extern "C" fn kmain() {
     // FIXME: TEST Blinky Code
     // REMOVE THIS.
     use pi::common::IO_BASE;
-    use pi::volatile::*;
+    use pi::gpio;
     use pi::timer;
 
-    let GPFSEL0 = unsafe {
-        &mut *((IO_BASE + 0x200000) as *mut Volatile<u32>)
-    };
-
-    let GPSET0 = unsafe {
-        &mut *((IO_BASE + 0x20001c) as *mut Volatile<u32>)
-    };
-
-    let GPCLR0 = unsafe {
-        &mut *((IO_BASE + 0x200028) as *mut Volatile<u32>)
-    };
-
-    GPFSEL0.or_mask(1 << (4 % 10) * 3);
+    let mut led = gpio::Gpio::new(4).into_output();
+    let mut button = gpio::Gpio::new(17).into_input();
 
     loop {
-        GPSET0.or_mask(1 << 4);
-        timer::spin_sleep_ms(100);
-        GPCLR0.or_mask(1 << 4);
-        timer::spin_sleep_ms(100);
+        if button.level() {
+            continue;
+        }
+
+        led.set();
+        timer::spin_sleep_ms(500);
+        led.clear();
+        timer::spin_sleep_ms(500);
     }
 }

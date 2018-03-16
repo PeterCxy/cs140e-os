@@ -46,6 +46,52 @@ struct Registers {
     PUDCLK: [Volatile<u32>; 2],
 }
 
+/*
+ * Calculate which of the GPFSEL registers
+ * control the state of `pin`
+ */
+#[inline(always)]
+fn fsel_index(pin: u8) -> usize {
+    (pin / 10) as usize
+}
+
+/*
+ * Calculate which 3 bits of the GPFSEL register
+ * control the state of `pin`
+ */
+#[inline(always)]
+fn fsel_offset(pin: u8) -> u8 {
+    (pin % 10) * 3
+}
+
+#[inline(always)]
+fn fsel_where(pin: u8) -> (usize, u8) {
+    (fsel_index(pin), fsel_offset(pin))
+}
+
+/*
+ * Calculate which GPSET / GPCLR / GPLEV
+ * correspond to `pin`
+ */
+#[inline(always)]
+fn gpio_index(pin: u8) -> usize {
+    (pin / 32) as usize
+}
+
+/*
+ * Calculate which bit in the GPSET / GPCLR / GPLEV
+ * register correspond to `pin`
+ */
+#[inline(always)]
+fn gpio_offset(pin: u8) -> u8 {
+    pin % 32
+}
+
+#[inline(always)]
+fn gpio_where(pin: u8) -> (usize, u8) {
+    (gpio_index(pin), gpio_offset(pin))
+}
+
 /// Possible states for a GPIO pin.
 states! {
     Uninitialized, Input, Output, Alt
@@ -102,7 +148,9 @@ impl Gpio<Uninitialized> {
     /// Enables the alternative function `function` for `self`. Consumes self
     /// and returns a `Gpio` structure in the `Alt` state.
     pub fn into_alt(self, function: Function) -> Gpio<Alt> {
-        unimplemented!()
+        let (index, offset) = fsel_where(self.pin);
+        self.registers.FSEL[index].or_mask((function as u32) << offset);
+        self.transition()
     }
 
     /// Sets this pin to be an _output_ pin. Consumes self and returns a `Gpio`
@@ -121,12 +169,14 @@ impl Gpio<Uninitialized> {
 impl Gpio<Output> {
     /// Sets (turns on) the pin.
     pub fn set(&mut self) {
-        unimplemented!()
+        let (index, offset) = gpio_where(self.pin);
+        self.registers.SET[index].write(1 << offset);
     }
 
     /// Clears (turns off) the pin.
     pub fn clear(&mut self) {
-        unimplemented!()
+        let (index, offset) = gpio_where(self.pin);
+        self.registers.CLR[index].write(1 << offset);
     }
 }
 
@@ -134,6 +184,8 @@ impl Gpio<Input> {
     /// Reads the pin's value. Returns `true` if the level is high and `false`
     /// if the level is low.
     pub fn level(&mut self) -> bool {
-        unimplemented!()
+        let (index, offset) = gpio_where(self.pin);
+        let lev = self.registers.LEV[index].read();
+        (lev & (1 << offset)) != 0
     }
 }
