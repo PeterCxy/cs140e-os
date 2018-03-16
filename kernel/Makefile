@@ -26,6 +26,7 @@ RUST_LIB := $(BUILD_DIR)/$(RUST_BINARY).a
 VPATH = ext
 
 all: $(KERNEL).hex $(KERNEL).bin
+	cp $(KERNEL).bin $(BUILD_DIR)/kernel8.img
 
 check:
 	@$(XARGO) check --target=$(TARGET)
