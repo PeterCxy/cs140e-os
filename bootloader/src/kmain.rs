@@ -25,5 +25,23 @@ fn jump_to(addr: *mut u8) -> ! {
 
 #[no_mangle]
 pub extern "C" fn kmain() {
-    // FIXME: Implement the bootloader.
+    loop {
+        try_load_kernel();
+        pi::timer::spin_sleep_ms(500);
+    }
+}
+
+// Try to load the kernel from UART using Xmodem protocol
+fn try_load_kernel() {
+    let buf = unsafe {
+        std::slice::from_raw_parts_mut(BINARY_START, MAX_BINARY_SIZE)
+    };
+
+    // Transmit using Xmodem over UART port
+    let mut uart = pi::uart::MiniUart::new();
+    uart.set_read_timeout(1000);
+    match xmodem::Xmodem::receive(uart, buf) {
+        Ok(_) => jump_to(BINARY_START),
+        Err(_) => ()
+    }
 }
