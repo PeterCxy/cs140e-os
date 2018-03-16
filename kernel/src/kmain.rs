@@ -19,25 +19,36 @@ pub mod shell;
 
 #[no_mangle]
 pub extern "C" fn kmain() {
+    use pi::uart;
+    use std::io::Write;
     // FIXME: Start the shell.
     
-    // FIXME: TEST Blinky Code
+    // FIXME: TEST Code
     // REMOVE THIS.
-    use pi::common::IO_BASE;
-    use pi::gpio;
-    use pi::timer;
-
-    let mut led = gpio::Gpio::new(4).into_output();
-    let mut button = gpio::Gpio::new(17).into_input();
-
+    let mut buf = [0u8; 255];
+    let mut i = 0;
+    let mut uart_port = uart::MiniUart::new();
+    uart_port.write("--> Welcome to Peter Kernel!\n\r".as_bytes()).unwrap();
     loop {
-        if button.level() {
+        let byte = uart_port.read_byte();
+
+        if byte == '\r' as u8 {
+            uart_port.write("\n\r> Received: ".as_bytes()).unwrap();
+            uart_port.write(&buf).unwrap();
+            uart_port.write("\n\r".as_bytes());
+            buf = [0u8; 255];
+            i = 0;
             continue;
         }
 
-        led.set();
-        timer::spin_sleep_ms(500);
-        led.clear();
-        timer::spin_sleep_ms(500);
+        uart_port.write_byte(byte);
+
+        if i >= buf.len() {
+            i = 0;
+            buf = [0u8; 255];
+        }
+
+        buf[i] = byte;
+        i += 1;
     }
 }

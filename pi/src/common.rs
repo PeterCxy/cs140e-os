@@ -5,3 +5,8 @@ pub const IO_BASE: usize = 0x3F000000;
 pub macro states($($name:ident),*) {
     $(pub enum $name {  })*
 }
+
+// Get one bit from a intergral value
+pub macro is_bit_set($val:expr, $pos:expr) {
+    ($val & (1 << $pos)) != 0
+}
