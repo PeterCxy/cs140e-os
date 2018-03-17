@@ -73,12 +73,22 @@ fn cmd_panic(_cmd: &Command) {
     panic!("Requested panic");
 }
 
+// Test the Atag impl
+fn cmd_atags(_cmd: &Command) {
+    use pi::atags;
+    
+    for tag in atags::Atags::get() {
+        kprintln!("{:#?}", tag);
+    }
+}
+
 // Process a command received from shell
 // TODO: Better implementation
 fn process_command(cmd: Command) {
     match cmd.path() {
         "echo" => cmd_echo(&cmd),
         "panic" => cmd_panic(&cmd),
+        "atags" => cmd_atags(&cmd),
         p => kprintln!("unknown command: {}", p)
     }
 }

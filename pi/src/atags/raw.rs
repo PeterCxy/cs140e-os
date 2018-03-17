@@ -20,7 +20,18 @@ impl Atag {
 
     /// Returns the ATAG following `self`, if there is one.
     pub fn next(&self) -> Option<&Atag> {
-        unimplemented!()
+        if self.tag == Atag::NONE {
+            // If this is already the NONE atag,
+            // then there is no more possible atags
+            None
+        } else {
+            // Find the next atag at the next address after self
+            let size = (self.dwords as usize) * 4;
+            let next = unsafe {
+                &*((self as *const Atag as usize + size) as *const Atag)
+            };
+            Some(next)
+        }
     }
 }
 
