@@ -68,11 +68,17 @@ fn cmd_echo(cmd: &Command) {
     kprintln!("");
 }
 
+// Test the panic_fmt impl
+fn cmd_panic(_cmd: &Command) {
+    panic!("Requested panic");
+}
+
 // Process a command received from shell
 // TODO: Better implementation
 fn process_command(cmd: Command) {
     match cmd.path() {
         "echo" => cmd_echo(&cmd),
+        "panic" => cmd_panic(&cmd),
         p => kprintln!("unknown command: {}", p)
     }
 }
