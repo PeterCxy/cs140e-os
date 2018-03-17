@@ -98,6 +98,9 @@ fn cmd_heap_test(_cmd: &Command) {
             v.push(i);
         }
         kprintln!("> {:?}", v);
+
+        #[cfg(not(test))]
+        kprintln!("{:#?}", super::ALLOCATOR);
     } else {
         kprintln!("error: cannot parse {} as number", args[0]);
     }

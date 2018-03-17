@@ -38,3 +38,14 @@ fn assert_power_of_two(num: usize) {
 pub fn is_power_of_two(num: usize) -> bool {
     (num != 0) && (num & (num - 1) == 0)
 }
+
+// Simple and naive log2_ceil implementation
+pub fn log2_ceil(num: usize) -> usize {
+    let mut x = 1;
+    let mut i = 0;
+    while x < num {
+        x = x << 1;
+        i += 1;
+    }
+    return i;
+}
