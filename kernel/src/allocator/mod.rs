@@ -87,7 +87,14 @@ extern "C" {
 ///
 /// This function is expected to return `Some` under all normal cirumstances.
 fn memory_map() -> Option<(usize, usize)> {
+    use pi::atags::{Atags, Mem};
     let binary_end = unsafe { (&_end as *const u8) as u32 };
 
-    unimplemented!("memory map fetch")
+    for atag in Atags::get() {
+        if let Some(mem) = atag.mem() {
+            return Some((binary_end as usize, ((mem.size + mem.start) - binary_end) as usize));
+        }
+    }
+
+    None
 }
