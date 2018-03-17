@@ -44,8 +44,7 @@ pub fn spin_sleep_us(us: u64) {
     let timer = Timer::new();
     let start = timer.read();
     loop {
-        unsafe { asm!("nop" :::: "volatile"); }
-        if (timer.read() - start >= us) {
+        if timer.read() - start >= us {
             break;
         }
     }

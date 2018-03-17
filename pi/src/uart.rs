@@ -23,7 +23,6 @@ enum LsrStatus {
 #[repr(C)]
 #[allow(non_snake_case)]
 struct Registers {
-    // FIXME: Declare the "MU" registers from page 8.
     MU_IO_REG: Volatile<u32>,
     MU_IER_REG: Volatile<u32>,
     MU_IIR_REG: Volatile<u32>,
@@ -153,16 +152,6 @@ impl fmt::Write for MiniUart {
 mod uart_io {
     use std::io;
     use super::MiniUart;
-
-    // FIXME: Implement `io::Read` and `io::Write` for `MiniUart`.
-    //
-    // The `io::Read::read()` implementation must respect the read timeout by
-    // waiting at most that time for the _first byte_. It should not wait for
-    // any additional bytes but _should_ read as many bytes as possible. If the
-    // read times out, an error of kind `TimedOut` should be returned.
-    //
-    // The `io::Write::write()` method must write all of the requested bytes
-    // before returning.
 
     impl io::Read for MiniUart {
         fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {

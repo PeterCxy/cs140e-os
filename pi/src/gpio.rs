@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use common::{IO_BASE, states};
+use common::{IO_BASE, states, is_bit_set};
 use volatile::prelude::*;
 use volatile::{Volatile, WriteVolatile, ReadVolatile, Reserved};
 
@@ -186,6 +186,6 @@ impl Gpio<Input> {
     pub fn level(&mut self) -> bool {
         let (index, offset) = gpio_where(self.pin);
         let lev = self.registers.LEV[index].read();
-        (lev & (1 << offset)) != 0
+        is_bit_set!(lev, offset)
     }
 }
