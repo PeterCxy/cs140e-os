@@ -37,8 +37,7 @@ pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 #[cfg(not(test))]
 pub extern "C" fn kmain() {
     // Initialize the memory alloator
-    // TODO: implement and remove the comment
-    //ALLOCATOR.initialize();
+    ALLOCATOR.initialize();
     // Simulate some long-running initialization task
     // because otherwise we won't have time to connect to
     // the UART port to debug

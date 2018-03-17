@@ -35,6 +35,6 @@ fn assert_power_of_two(num: usize) {
 }
 
 #[inline(always)]
-fn is_power_of_two(num: usize) -> bool {
+pub fn is_power_of_two(num: usize) -> bool {
     (num != 0) && (num & (num - 1) == 0)
 }

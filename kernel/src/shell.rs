@@ -82,6 +82,27 @@ fn cmd_atags(_cmd: &Command) {
     }
 }
 
+// Test heap allocation
+// TODO: better implementation for argument passing and limitations
+fn cmd_heap_test(_cmd: &Command) {
+    let args = _cmd.arguments();
+    if args.len() != 1 {
+        kprintln!("error: incorrect number of arguments for `heap_test`");
+        return;
+    }
+    let num = args[0].parse::<u32>();
+    if let Ok(num) = num {
+        kprintln!("> testing heap allocation...");
+        let mut v = vec![];
+        for i in 0..num {
+            v.push(i);
+        }
+        kprintln!("> {:?}", v);
+    } else {
+        kprintln!("error: cannot parse {} as number", args[0]);
+    }
+}
+
 // Process a command received from shell
 // TODO: Better implementation
 fn process_command(cmd: Command) {
@@ -89,6 +110,7 @@ fn process_command(cmd: Command) {
         "echo" => cmd_echo(&cmd),
         "panic" => cmd_panic(&cmd),
         "atags" => cmd_atags(&cmd),
+        "heap_test" => cmd_heap_test(&cmd),
         p => kprintln!("unknown command: {}", p)
     }
 }
