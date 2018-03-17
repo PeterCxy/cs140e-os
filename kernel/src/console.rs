@@ -66,8 +66,8 @@ impl io::Write for Console {
 
 impl fmt::Write for Console {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        use std::io::Write;
-        let result = self.inner().write(s.as_bytes());
+        use std::fmt::Write;
+        let result = self.inner().write_str(s);
         match result {
             Ok(_) => Ok(()),
             Err(_) => Err(fmt::Error)
@@ -88,9 +88,9 @@ pub fn _print(args: fmt::Arguments) {
 
 /// Like `println!`, but for kernel-space.
 pub macro kprintln {
-    () => (kprint!("\n\r")),
-    ($fmt:expr) => (kprint!(concat!($fmt, "\n\r"))),
-    ($fmt:expr, $($arg:tt)*) => (kprint!(concat!($fmt, "\n\r"), $($arg)*))
+    () => (kprint!("\n")),
+    ($fmt:expr) => (kprint!(concat!($fmt, "\n"))),
+    ($fmt:expr, $($arg:tt)*) => (kprint!(concat!($fmt, "\n"), $($arg)*))
 }
 
 /// Like `print!`, but for kernel-space.

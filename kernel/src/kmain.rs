@@ -19,6 +19,10 @@ pub mod shell;
 
 #[no_mangle]
 pub extern "C" fn kmain() {
+    // Simulate some long-running initialization task
+    // because otherwise we won't have time to connect to
+    // the UART port to debug
+    pi::timer::spin_sleep_ms(1000);
     // Enter the shell
     shell::shell("$ ");
 }
