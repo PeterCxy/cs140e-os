@@ -39,13 +39,26 @@ pub fn is_power_of_two(num: usize) -> bool {
     (num != 0) && (num & (num - 1) == 0)
 }
 
-// Simple and naive log2_ceil implementation
+// Fast log2 implementation
+// Source: <https://stackoverflow.com/questions/3272424/compute-fast-log-base-2-ceiling>
+const LOG2_TABLE: [usize; 6] = [
+    0xFFFFFFFF00000000usize,
+    0x00000000FFFF0000usize,
+    0x000000000000FF00usize,
+    0x00000000000000F0usize,
+    0x000000000000000Cusize,
+    0x0000000000000002usize
+];
+
 pub fn log2_ceil(num: usize) -> usize {
-    let mut x = 1;
-    let mut i = 0;
-    while x < num {
-        x = x << 1;
-        i += 1;
+    let mut x = num;
+    let mut y = if (x & (x - 1)) == 0 { 0 } else { 1 };
+    let mut j = 32;
+    for i in 0..6 {
+        let k = if ((x & LOG2_TABLE[i]) == 0) { 0 } else { j };
+        y += k;
+        x = x >> k;
+        j = j >> 1;
     }
-    return i;
+    return y;
 }
