@@ -98,7 +98,11 @@ fn cmd_heap_test(_cmd: &Command) {
             v.push(i);
         }
         kprintln!("> {:?}", v);
-
+        let mut v2 = vec![];
+        for i in 0..num {
+            v2.push(v.pop());
+        }
+        kprintln!("> {:?}", v2);
         #[cfg(not(test))]
         kprintln!("{:#?}", super::ALLOCATOR);
     } else {

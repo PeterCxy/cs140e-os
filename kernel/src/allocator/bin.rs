@@ -54,6 +54,36 @@ impl Allocator {
         }
     }
 
+    // Insert a chunk into its corresponding bin
+    // but try to merge the chunk with adjacent chunks if available
+    unsafe fn coalesce_insert_chunk(&mut self, bin_index: usize, chunk: *mut usize) {
+        if bin_index < self.bin_num - 1 {
+            let bin_size = calc_bin_size(bin_index);
+            let chunk_addr = chunk as usize;
+            let mut merge_addr: Option<usize> = None;
+            for node in self.bins[bin_index].iter_mut() {
+                // Merge adjacent chunks if possible
+                let addr = node.value() as usize;
+                if addr > chunk_addr && addr - chunk_addr == bin_size {
+                    merge_addr = Some(chunk_addr);
+                    node.pop();
+                    break;
+                } else if addr < chunk_addr && chunk_addr - addr == bin_size {
+                    merge_addr = Some(addr);
+                    node.pop();
+                    break;
+                }
+            }
+
+            if let Some(addr) = merge_addr {
+                self.coalesce_insert_chunk(bin_index + 1, addr as *mut usize);
+                return;
+            }
+        }
+
+        self.bins[bin_index].push(chunk);
+    }
+
     /// Allocates memory. Returns a pointer meeting the size and alignment
     /// properties of `layout.size()` and `layout.align()`.
     ///
@@ -140,9 +170,9 @@ impl Allocator {
         let bin_index = log2_ceil(layout.size()).saturating_sub(3);
         let bin_size = calc_bin_size(bin_index);
         if bin_index < self.bin_num {
-            // TODO: memory coalesing
             unsafe {
-                self.bins[bin_index].push(ptr as *mut usize);
+                self.coalesce_insert_chunk(bin_index, ptr as *mut usize);
+                //self.bins[bin_index].push(ptr as *mut usize);
             }
         } else {
             // The other cases are not implemented in alloc() yet
