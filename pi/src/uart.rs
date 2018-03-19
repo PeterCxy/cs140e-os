@@ -112,7 +112,7 @@ impl MiniUart {
 
         while !self.has_byte() {
             if let Some(timeout) = self.timeout {
-                if timer.read() - start >= (timeout as u64) {
+                if timer.read() - start >= (timeout as u64) * 1000 {
                     return Err(());
                 }
             }
