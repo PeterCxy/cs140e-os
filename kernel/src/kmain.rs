@@ -38,10 +38,15 @@ pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 pub extern "C" fn kmain() {
     // Initialize the memory alloator
     ALLOCATOR.initialize();
+
     // Simulate some long-running initialization task
     // because otherwise we won't have time to connect to
     // the UART port to debug
     pi::timer::spin_sleep_ms(1000);
+    
+    // Initialze file system
+    FILE_SYSTEM.initialize();
+
     // Enter the shell
     shell::shell("$ ");
 }

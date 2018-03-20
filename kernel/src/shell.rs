@@ -2,6 +2,10 @@ use stack_vec::StackVec;
 use console::{kprint, kprintln, CONSOLE};
 use std::io::Write;
 use std::str;
+use std::path::Path;
+use fat32::vfat::*;
+use fat32::traits::{FileSystem, Entry, Dir};
+use super::FILE_SYSTEM;
 
 const SHELL_WELCOME: &'static str = r#"
   _____     _     _                ____   _____ 
@@ -118,6 +122,7 @@ fn process_command(cmd: Command) {
         "panic" => cmd_panic(&cmd),
         "atags" => cmd_atags(&cmd),
         "heap_test" => cmd_heap_test(&cmd),
+        //"emm" => FILE_SYSTEM.initialize(),
         p => kprintln!("unknown command: {}", p)
     }
 }
@@ -130,6 +135,11 @@ pub fn shell(prefix: &str) -> ! {
     kprintln!("{}", "Welcome to Ichigo OS! 僕のダーリング。");
     kprintln!("");
     kprint!("{}", prefix);
+
+    // TEST FILESYSTEM: REMOVE THIS IN THE FUTURE
+    for entry in FILE_SYSTEM.open(Path::new("/")).unwrap().into_dir().unwrap().entries().unwrap() {
+        kprintln!("{:#?}", entry);
+    }
 
     // Use a StackVec for storage of command lines
     let mut line_buf = [0u8; 512];
