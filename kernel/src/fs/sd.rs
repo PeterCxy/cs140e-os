@@ -26,11 +26,13 @@ extern "C" {
     fn sd_readsector(n: i32, buffer: *mut u8) -> i32;
 }
 
-// FIXME: Define a `#[no_mangle]` `wait_micros` function for use by `libsd`.
+// Define a `#[no_mangle]` `wait_micros` function for use by `libsd`.
 // The `wait_micros` C signature is: `void wait_micros(unsigned int);`
 #[no_mangle]
 pub fn wait_micros(us: u32) {
-    pi::timer::spin_sleep_us((us as u64) * 50);
+    // NOTE: We multiply the `us` by 1000 because it seems that the default
+    // value for the timeout was too short on my RPi3 for it to work properly
+    pi::timer::spin_sleep_us((us as u64) * 1000);
 }
 
 #[derive(Debug)]
