@@ -20,7 +20,7 @@ RUST_LIB_DEPS = ../pi/src/* ../pi/src/*/** \
 				../../1-shell/stack-vec/src/* \
 				../../2-fs/fat32/src/* ../../2-fs/fat32/src/*/**
 
-RUST_DEPS = Xargo.toml Cargo.toml build.rs $(LD_LAYOUT) src/* $(RUST_LIB_DEPS)
+RUST_DEPS = Xargo.toml Cargo.toml build.rs $(LD_LAYOUT) src/* src/*/** $(RUST_LIB_DEPS)
 EXT_DEPS = $(BUILD_DIR)/init.o
 
 BUILD_DIR := build
