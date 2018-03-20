@@ -138,7 +138,7 @@ pub fn shell(prefix: &str) -> ! {
 
     // TEST FILESYSTEM: REMOVE THIS IN THE FUTURE
     for entry in FILE_SYSTEM.open(Path::new("/")).unwrap().into_dir().unwrap().entries().unwrap() {
-        kprintln!("{:#?}", entry);
+        kprintln!("{}", entry.name());
     }
 
     // Use a StackVec for storage of command lines
