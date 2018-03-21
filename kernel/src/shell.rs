@@ -4,7 +4,7 @@ use std::io::Write;
 use std::str;
 use std::path::{Path, PathBuf};
 use fat32::vfat::*;
-use fat32::traits::{FileSystem, Entry, Dir};
+use fat32::traits::{FileSystem, Entry, Dir, Metadata, Timestamp};
 use super::FILE_SYSTEM;
 
 const SHELL_WELCOME: &'static str = r#"
@@ -67,7 +67,11 @@ static SHELL_CMDS: &'static [&'static ShellCmd] = &[
     &EchoCmd,
     &PanicCmd,
     &AtagsCmd,
-    &HeapTestCmd
+    &HeapTestCmd,
+    &LsCmd,
+    &CdCmd,
+    &PwdCmd,
+    &CatCmd
 ];
 
 // Process a command received from shell
@@ -239,6 +243,175 @@ impl ShellCmd for HeapTestCmd {
             kprintln!("{:#?}", super::ALLOCATOR);
         } else {
             kprintln!("error: cannot parse {} as number", args[0]);
+        }
+    }
+}
+
+// $ pwd
+// print working directory
+struct PwdCmd;
+impl ShellCmd for PwdCmd {
+    fn name(&self) -> &'static str {
+        "pwd"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        if args.arguments().len() > 0 {
+            kprintln!("error: too many arguments");
+            return;
+        }
+
+        kprintln!("{}", pwd.to_string_lossy());
+    }
+}
+
+// $ cd dir
+// change working directory into `dir`
+struct CdCmd;
+impl ShellCmd for CdCmd {
+    fn name(&self) -> &'static str {
+        "cd"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        if args.arguments().len() != 1 {
+            kprintln!("error: `cd` requires exactly 1 argument");
+            return;
+        }
+
+        let dir = args.arguments()[0];
+        match dir {
+            ".." => {
+                pwd.pop();
+            },
+            "." => {
+                return;
+            },
+            dir => {
+                pwd.push(dir);
+                if FILE_SYSTEM.open(pwd.as_path()).is_err() {
+                    pwd.pop();
+                    kprintln!("error: {} not found", dir);
+                }
+            }
+        }
+    }
+}
+
+// List the entries in current directory
+// $ ls [-a] [dir]
+// -a: list hidden files
+// dir: list files in dir instead of pwd
+struct LsCmd;
+impl ShellCmd for LsCmd {
+    fn name(&self) -> &'static str {
+        "ls"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        let mut show_hidden = false;
+        let mut custom_dir = false;
+        let mut path = pwd.clone();
+        for arg in args.arguments() {
+            if arg == &"-a" {
+                if !show_hidden {
+                    show_hidden = true;
+                } else {
+                    kprintln!("error: multiple `-a` provided");
+                    return;
+                }
+            } else {
+                if !custom_dir {
+                    custom_dir = true;
+                    path.push(arg);
+                } else {
+                    kprintln!("error: too many arguments");
+                    return;
+                }
+            }
+        }
+        let entry = FILE_SYSTEM.open(path.as_path());
+        if entry.is_err() {
+            kprintln!("error: cannot open {:?}", path);
+            return;
+        }
+
+        let dir = entry.unwrap().into_dir();
+        if dir.is_none() {
+            kprintln!("error: {:?} is not a directory", path);
+            return;
+        }
+
+        let entries = dir.unwrap().entries();
+        if entries.is_err() {
+            kprintln!("error: cannot list {:?}", path);
+            return;
+        }
+
+        for item in entries.unwrap() {
+            let mut name = item.name().to_string();
+
+            if item.metadata().hidden() {
+                if !show_hidden {
+                    continue;
+                } else {
+                    name = format!("*{}", name);
+                }
+            }
+
+            if item.as_dir().is_some() && name != "." && name != ".." {
+                name = format!("{}/", name);
+            }
+
+            let timestamp = item.metadata().created();
+            let time_format = format!("{}-{:02}-{:02} {:02}:{:02}:{:02}",
+                timestamp.year(), timestamp.month(), timestamp.day(),
+                timestamp.hour(), timestamp.minute(), timestamp.second());
+            kprintln!("{}\t{}", time_format, name);
+        }
+    }
+}
+
+// $ cat file1 file2....
+// print the content of file1, file2...
+struct CatCmd;
+impl CatCmd {
+    fn print_file(pwd: &mut PathBuf, file: &str) {
+        use std::io::Read;
+        let mut path = pwd.clone();
+        path.push(file);
+        let entry = FILE_SYSTEM.open(path.as_path());
+        if entry.is_err() {
+            kprintln!("error: failed to open {:?}", path);
+            return;
+        }
+
+        let entry = entry.unwrap();
+        if let Some(mut f) = entry.into_file() {
+            let mut buf = String::new();
+            if f.read_to_string(&mut buf).is_ok() {
+                kprint!("{}", buf);
+            } else {
+                kprintln!("error: unable to read from {:?}", path);
+            }
+        } else {
+            kprintln!("error: {:?} is a directory", path);
+        }
+    }
+}
+impl ShellCmd for CatCmd {
+    fn name(&self) -> &'static str {
+        "cat"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        if args.arguments().len() == 0 {
+            kprintln!("error: `cat` requires at least one argument");
+            return;
+        }
+
+        for file in args.arguments() {
+            CatCmd::print_file(pwd, file);
         }
     }
 }
