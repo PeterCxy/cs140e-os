@@ -91,8 +91,9 @@ fn process_command(pwd: &mut PathBuf, cmd: Command) {
 }
 
 /// Starts a shell using `prefix` as the prefix for each line. This function
-/// never returns: it is perpetually in a shell loop.
-pub fn shell(prefix: &str) -> ! {
+/// returns when exit is called.
+/// TODO: implement `exit`
+pub fn shell(prefix: &str) {
     // Print our awesome welcome message
     kprintln!("{}", SHELL_WELCOME);
     kprintln!("{}", "Welcome to Ichigo OS! 僕のダーリング。");
