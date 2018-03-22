@@ -1,3 +1,4 @@
+use aarch64;
 use stack_vec::StackVec;
 use console::{kprint, kprintln, CONSOLE};
 use std::io::Write;
@@ -71,7 +72,8 @@ static SHELL_CMDS: &'static [&'static ShellCmd] = &[
     &LsCmd,
     &CdCmd,
     &PwdCmd,
-    &CatCmd
+    &CatCmd,
+    &CurrentELCmd
 ];
 
 // Process a command received from shell
@@ -414,5 +416,21 @@ impl ShellCmd for CatCmd {
         for file in args.arguments() {
             CatCmd::print_file(pwd, file);
         }
+    }
+}
+
+// $ current_el
+// print the current exception level
+struct CurrentELCmd;
+impl ShellCmd for CurrentELCmd {
+    fn name(&self) -> &'static str {
+        "current_el"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        let el = unsafe {
+            aarch64::current_el()
+        };
+        kprintln!("current excepton level: {}", el);
     }
 }

@@ -80,7 +80,21 @@ switch_to_el1:
     // change execution level to EL1 (ref: C5.2.19)
     mov     x2, #0x3c5
     msr     SPSR_EL2, x2
-    // FIXME: Return to EL1 at `set_stack`.
+    // Return to EL1 at `set_stack`
+    // Set return address at `set_stack`
+    adr     x0, set_stack
+    msr     ELR_EL2, x0
+
+    // Construct SPSR_EL2
+    // information to return to EL1 is in EL2 registers
+    mov     x0, xzr
+    orr     x0, x0, #(0b111 << 6) // mask all exceptions (TODO: might need to change)
+    orr     x0, x0, #(0b1 << 2)   // return to EL1 (see SPSR_EL2 documents)
+    orr     x0, x0, #(0b1 << 0)   // use dedicated stack pointer for EL1
+    msr     SPSR_EL2, x0
+
+    // Return to EL1
+    eret
 
 set_stack:
     // set the current stack pointer
