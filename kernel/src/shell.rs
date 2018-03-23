@@ -192,6 +192,11 @@ impl ShellCmd for PanicCmd {
     }
 
     fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        unsafe {
+            // Trigger exception
+            // TODO: remove this
+            asm!("brk 2");
+        }
         panic!("Requested panic")
     }
 }
