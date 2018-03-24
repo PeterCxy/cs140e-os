@@ -50,8 +50,6 @@ pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
     kprintln!("info: {:?}", info);
     kprintln!("syndrome: {:?}", exception_syndrome);
     kprintln!("-------------------");
-    shell::shell("debug > ");
-    loop {
-        aarch64::nop();
-    }
+    shell::shell("debug> "); // Start debug shell
+    tf.program_counter += 4; // Jump to the next instruction
 }

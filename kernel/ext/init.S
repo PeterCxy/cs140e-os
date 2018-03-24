@@ -110,6 +110,16 @@ go_kmain:
     b       halt
 
 context_save:
+    // Set up the trap frame on the stack
+    // The trap frame contains all the information
+    // needed to restore the execution state
+    // The total size is 800 bytes.
+    // 64-bit registers
+    // It is our responsibility to save `x0` and `lr` __again__
+    // the ones saved in `HANDLER` has no relationship with ours
+    // `context_save` is also a routine, it MUST save `lr`
+    // if it wants to call some other routines.
+    stp     x0, x30, [SP, #-16]!
     stp     x1, x2, [SP, #-16]!
     stp     x3, x4, [SP, #-16]!
     stp     x5, x6, [SP, #-16]!
@@ -119,12 +129,90 @@ context_save:
     stp     x13, x14, [SP, #-16]!
     stp     x15, x16, [SP, #-16]!
     stp     x17, x18, [SP, #-16]!
+    stp     x19, x20, [SP, #-16]!
+    stp     x21, x22, [SP, #-16]!
+    stp     x23, x24, [SP, #-16]!
+    stp     x25, x26, [SP, #-16]!
+    stp     x27, x28, [SP, #-16]!
+    str     x29, [SP, #-16]! // contains a reserved field of 8 bytes
+
+    // 128-bit registers
+    stp     q0, q31, [SP, #-32]!
+    stp     q1, q2, [SP, #-32]!
+    stp     q3, q4, [SP, #-32]!
+    stp     q5, q6, [SP, #-32]!
+    stp     q7, q8, [SP, #-32]!
+    stp     q9, q10, [SP, #-32]!
+    stp     q11, q12, [SP, #-32]!
+    stp     q13, q14, [SP, #-32]!
+    stp     q15, q16, [SP, #-32]!
+    stp     q17, q18, [SP, #-32]!
+    stp     q19, q20, [SP, #-32]!
+    stp     q21, q22, [SP, #-32]!
+    stp     q23, q24, [SP, #-32]!
+    stp     q25, q26, [SP, #-32]!
+    stp     q27, q28, [SP, #-32]!
+    stp     q29, q30, [SP, #-32]!
+
+    // Special registers
+    mrs     x19, SPSR_EL1          // PSTATE
+    mrs     x20, ELR_EL1           // Program Counter
+    stp     x19, x20, [SP, #-16]!
+    mrs     x19, SP_EL0            // Stack pointer (of EL0)
+    mrs     x20, TPIDR_EL0         // Thread ID (of EL0)
+    stp     x19, x20, [SP, #-16]!
+
     mrs     x1, ESR_EL1           // Exception Syndrome
-    mov     x2, xzr               // Trap frame, curretly set as 0
+    mov     x2, SP
     bl      handle_exception
 
 .global context_restore
 context_restore:
+    // Restore the trap frame to the registers
+    // Special registers
+    ldp     x19, x20, [SP], #16
+    msr     SP_EL0, x19
+    msr     TPIDR_EL0, x20
+    ldp     x19, x20, [SP], #16
+    msr     SPSR_EL1, x19
+    msr     ELR_EL1, x20
+
+    // 128-bit registers
+    ldp     q29, q30, [SP], #32
+    ldp     q27, q28, [SP], #32
+    ldp     q25, q26, [SP], #32
+    ldp     q23, q24, [SP], #32
+    ldp     q21, q22, [SP], #32
+    ldp     q19, q20, [SP], #32
+    ldp     q17, q18, [SP], #32
+    ldp     q15, q16, [SP], #32
+    ldp     q13, q14, [SP], #32
+    ldp     q11, q12, [SP], #32
+    ldp     q9, q10, [SP], #32
+    ldp     q7, q8, [SP], #32
+    ldp     q6, q5, [SP], #32
+    ldp     q4, q3, [SP], #32
+    ldp     q1, q2, [SP], #32
+    ldp     q0, q31, [SP], #32
+
+    // 64-bit registers
+    ldr     x29, [SP], #16
+    ldp     x27, x28, [SP], #16
+    ldp     x25, x26, [SP], #16
+    ldp     x23, x24, [SP], #16
+    ldp     x21, x22, [SP], #16
+    ldp     x19, x20, [SP], #16
+    ldp     x17, x18, [SP], #16
+    ldp     x15, x16, [SP], #16
+    ldp     x13, x14, [SP], #16
+    ldp     x11, x12, [SP], #16
+    ldp     x9, x10, [SP], #16
+    ldp     x7, x8, [SP], #16
+    ldp     x6, x5, [SP], #16
+    ldp     x4, x3, [SP], #16
+    ldp     x1, x2, [SP], #16
+    ldp     x0, x30, [SP], #16
+
     ret
 
 #define HANDLER(source, kind) \
