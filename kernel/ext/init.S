@@ -168,6 +168,7 @@ context_save:
 
 .global context_restore
 context_restore:
+    // TODO: DO NOT USE [SP], USE AN ADDRESS PASSED INTO x0
     // Restore the trap frame to the registers
     // Special registers
     ldp     x19, x20, [SP], #16
