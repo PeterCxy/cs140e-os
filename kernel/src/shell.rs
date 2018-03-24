@@ -73,7 +73,8 @@ static SHELL_CMDS: &'static [&'static ShellCmd] = &[
     &CdCmd,
     &PwdCmd,
     &CatCmd,
-    &CurrentELCmd
+    &CurrentELCmd,
+    &ExceptionCmd
 ];
 
 // Process a command received from shell
@@ -94,7 +95,6 @@ fn process_command(pwd: &mut PathBuf, cmd: Command) {
 
 /// Starts a shell using `prefix` as the prefix for each line. This function
 /// returns when exit is called.
-/// TODO: implement `exit`
 pub fn shell(prefix: &str) {
     // Print our awesome welcome message
     kprintln!("{}", SHELL_WELCOME);
@@ -109,7 +109,7 @@ pub fn shell(prefix: &str) {
     // Use a StackVec for storage of command lines
     let mut line_buf = [0u8; 512];
     let mut line = StackVec::new(&mut line_buf[..]);
-    loop {
+    'shell_loop: loop {
         // Wait for the next byte to come in
         let byte = CONSOLE.lock().read_byte();
 
@@ -124,7 +124,14 @@ pub fn shell(prefix: &str) {
                     let mut cmd_buf = [""; 64];
                     let cmd = Command::parse(line_str, &mut cmd_buf[..]);
                     match cmd {
-                        Ok(cmd) => process_command(&mut pwd, cmd),
+                        Ok(cmd) => {
+                            if cmd.path() == "exit" {
+                                kprintln!("shell exitting.");
+                                break 'shell_loop;
+                            } else {
+                                process_command(&mut pwd, cmd);
+                            }
+                        },
                         Err(Error::TooManyArgs) => kprintln!("error: too many arguments"),
                         Err(Error::Empty) => ()
                     }
@@ -192,12 +199,21 @@ impl ShellCmd for PanicCmd {
     }
 
     fn exec(&self, pwd: &mut PathBuf, args: &Command) {
-        unsafe {
-            // Trigger exception
-            // TODO: remove this
-            asm!("brk 2");
-        }
         panic!("Requested panic")
+    }
+}
+
+// Trigger an exception
+struct ExceptionCmd;
+impl ShellCmd for ExceptionCmd {
+    fn name(&self) -> &'static str {
+        "exception"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        unsafe {
+            asm!("brk 233");
+        }
     }
 }
 

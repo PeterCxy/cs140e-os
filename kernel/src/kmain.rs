@@ -62,5 +62,7 @@ pub extern "C" fn kmain() {
     FILE_SYSTEM.initialize();
 
     // Enter the shell
-    shell::shell("$ ");
+    loop {
+        shell::shell("$ ");
+    }
 }
