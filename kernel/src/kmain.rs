@@ -61,7 +61,15 @@ pub extern "C" fn kmain() {
     // Initialze file system
     FILE_SYSTEM.initialize();
 
-    // Enter the shell
+    // Start scheduler
+    SCHEDULER.start();
+}
+
+#[no_mangle]
+#[cfg(not(test))]
+pub extern "C" fn start_shell() {
+    console::kprintln!("Hello world from user space!");
+
     loop {
         shell::shell("$ ");
     }

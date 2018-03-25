@@ -166,6 +166,7 @@ context_save:
     mov     x2, SP
     bl      handle_exception
     mov     x0, SP                // Argument for context_restore
+    mov     x1, xzr
     add     SP, SP, #800          // Restore the SP before falling into context_restore
 
 .global context_restore
@@ -213,9 +214,29 @@ context_restore:
     ldp     x7, x8, [x0], #16
     ldp     x6, x5, [x0], #16
     ldp     x4, x3, [x0], #16
+
+    // If `x1` is 0, we do a normal return
+    // Otherwise we directly call `eret`
+    // we do this comparison before overwriting `x1`
+    cmp     x1, xzr
+    beq     context_restore_return
+
+    // Restore the remaining registers
     ldp     x1, x2, [x0], #16
     ldp     x0, x30, [x0] // Finally overwrite x0 with restored context
 
+    // Reset SP to _start
+    // x30 is not used anyway if we `eret`, just use it for intermediate values
+    adr     x30, _start
+    mov     SP, x30
+
+    // Switch level!
+    eret
+
+context_restore_return:
+    // Restore the remaining registers
+    ldp     x1, x2, [x0], #16
+    ldp     x0, x30, [x0] // Finally overwrite x0 with restored context
     ret
 
 #define HANDLER(source, kind) \

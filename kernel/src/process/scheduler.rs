@@ -1,8 +1,10 @@
 use std::collections::VecDeque;
 
+use console;
 use mutex::Mutex;
 use process::{Process, State, Id};
 use traps::TrapFrame;
+use start_shell;
 
 /// The `tick` time.
 // FIXME: When you're ready, change this to something more reasonable.
@@ -37,7 +39,29 @@ impl GlobalScheduler {
     /// using timer interrupt based preemptive scheduling. This method should
     /// not return under normal conditions.
     pub fn start(&self) {
-        unimplemented!("GlobalScheduler::start()")
+        // TODO: Test code. Remove when finishing next phase.
+        Process::new()
+            .map(|mut shell_process| {
+                // Pass the stack pointer
+                let sp = unsafe {
+                    shell_process.stack.top().as_u64()
+                };
+                shell_process.trap_frame.stack_pointer = sp;
+
+                // The entry address is `start_shell` in `kmain.rs`
+                let entry_addr = start_shell as *const ();
+                shell_process.trap_frame.program_counter = entry_addr as u64;
+
+                // We don't need to set SPSR because 0 means switching to EL0
+                // and unmasking all the necessary exceptions
+                // Call `context_restore` in `init.S` to switch to EL0
+                unsafe {
+                    asm!("mov x0, $0
+                          mov x1, #1
+                          bl context_restore"
+                        :: "r"(&*(shell_process.trap_frame)) :: "volatile");
+                }
+            }).expect("WTF");
     }
 }
 
