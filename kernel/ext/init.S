@@ -165,54 +165,56 @@ context_save:
     mrs     x1, ESR_EL1           // Exception Syndrome
     mov     x2, SP
     bl      handle_exception
+    mov     x0, SP                // Argument for context_restore
+    add     SP, SP, #800          // Restore the SP before falling into context_restore
 
 .global context_restore
 context_restore:
-    // TODO: DO NOT USE [SP], USE AN ADDRESS PASSED INTO x0
     // Restore the trap frame to the registers
+    // The first argument (x0) should be pointer to the trap frame
     // Special registers
-    ldp     x19, x20, [SP], #16
+    ldp     x19, x20, [x0], #16
     msr     SP_EL0, x19
     msr     TPIDR_EL0, x20
-    ldp     x19, x20, [SP], #16
+    ldp     x19, x20, [x0], #16
     msr     SPSR_EL1, x19
     msr     ELR_EL1, x20
 
     // 128-bit registers
-    ldp     q29, q30, [SP], #32
-    ldp     q27, q28, [SP], #32
-    ldp     q25, q26, [SP], #32
-    ldp     q23, q24, [SP], #32
-    ldp     q21, q22, [SP], #32
-    ldp     q19, q20, [SP], #32
-    ldp     q17, q18, [SP], #32
-    ldp     q15, q16, [SP], #32
-    ldp     q13, q14, [SP], #32
-    ldp     q11, q12, [SP], #32
-    ldp     q9, q10, [SP], #32
-    ldp     q7, q8, [SP], #32
-    ldp     q6, q5, [SP], #32
-    ldp     q4, q3, [SP], #32
-    ldp     q1, q2, [SP], #32
-    ldp     q0, q31, [SP], #32
+    ldp     q29, q30, [x0], #32
+    ldp     q27, q28, [x0], #32
+    ldp     q25, q26, [x0], #32
+    ldp     q23, q24, [x0], #32
+    ldp     q21, q22, [x0], #32
+    ldp     q19, q20, [x0], #32
+    ldp     q17, q18, [x0], #32
+    ldp     q15, q16, [x0], #32
+    ldp     q13, q14, [x0], #32
+    ldp     q11, q12, [x0], #32
+    ldp     q9, q10, [x0], #32
+    ldp     q7, q8, [x0], #32
+    ldp     q6, q5, [x0], #32
+    ldp     q4, q3, [x0], #32
+    ldp     q1, q2, [x0], #32
+    ldp     q0, q31, [x0], #32
 
     // 64-bit registers
-    ldr     x29, [SP], #16
-    ldp     x27, x28, [SP], #16
-    ldp     x25, x26, [SP], #16
-    ldp     x23, x24, [SP], #16
-    ldp     x21, x22, [SP], #16
-    ldp     x19, x20, [SP], #16
-    ldp     x17, x18, [SP], #16
-    ldp     x15, x16, [SP], #16
-    ldp     x13, x14, [SP], #16
-    ldp     x11, x12, [SP], #16
-    ldp     x9, x10, [SP], #16
-    ldp     x7, x8, [SP], #16
-    ldp     x6, x5, [SP], #16
-    ldp     x4, x3, [SP], #16
-    ldp     x1, x2, [SP], #16
-    ldp     x0, x30, [SP], #16
+    ldr     x29, [x0], #16
+    ldp     x27, x28, [x0], #16
+    ldp     x25, x26, [x0], #16
+    ldp     x23, x24, [x0], #16
+    ldp     x21, x22, [x0], #16
+    ldp     x19, x20, [x0], #16
+    ldp     x17, x18, [x0], #16
+    ldp     x15, x16, [x0], #16
+    ldp     x13, x14, [x0], #16
+    ldp     x11, x12, [x0], #16
+    ldp     x9, x10, [x0], #16
+    ldp     x7, x8, [x0], #16
+    ldp     x6, x5, [x0], #16
+    ldp     x4, x3, [x0], #16
+    ldp     x1, x2, [x0], #16
+    ldp     x0, x30, [x0] // Finally overwrite x0 with restored context
 
     ret
 
