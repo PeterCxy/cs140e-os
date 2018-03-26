@@ -1,6 +1,6 @@
-use common::IO_BASE;
+use common::{IO_BASE, is_bit_set};
 use volatile::prelude::*;
-use volatile::{Volatile, ReadVolatile};
+use volatile::{WriteVolatile, ReadVolatile};
 
 const INT_BASE: usize = IO_BASE + 0xB000 + 0x200;
 
@@ -19,7 +19,13 @@ pub enum Interrupt {
 #[repr(C)]
 #[allow(non_snake_case)]
 struct Registers {
-    // FIXME: Fill me in.
+    IRQ_BASIC_PENDING: ReadVolatile<u32>,
+    IRQ_PENDING: [ReadVolatile<u32>; 2],
+    FIQ_CONTROL: WriteVolatile<u32>,
+    ENABLE_IRQ: [WriteVolatile<u32>; 2],
+    ENABLE_BASIC_IRQ: WriteVolatile<u32>,
+    DISABLE_IRQ: [WriteVolatile<u32>; 2],
+    DISABLE_BASIC_IRQ: WriteVolatile<u32>
 }
 
 /// An interrupt controller. Used to enable and disable interrupts as well as to
@@ -36,18 +42,30 @@ impl Controller {
         }
     }
 
+    #[inline(always)]
+    fn interrupt_resgiter_pos(int: Interrupt) -> (usize, u8) {
+        let id = int as u64;
+        let register_num = id / 32;
+        let offset = id % 32;
+        (register_num as usize, offset as u8)
+    }
+
     /// Enables the interrupt `int`.
     pub fn enable(&mut self, int: Interrupt) {
-        unimplemented!()
+        let (register_num, offset) = Self::interrupt_resgiter_pos(int);
+        self.registers.ENABLE_IRQ[register_num].write(1 << offset);
     }
 
     /// Disables the interrupt `int`.
     pub fn disable(&mut self, int: Interrupt) {
-        unimplemented!()
+        let (register_num, offset) = Self::interrupt_resgiter_pos(int);
+        self.registers.DISABLE_IRQ[register_num].write(1 << offset);
     }
 
     /// Returns `true` if `int` is pending. Otherwise, returns `false`.
     pub fn is_pending(&self, int: Interrupt) -> bool {
-        unimplemented!()
+        let (register_num, offset) = Self::interrupt_resgiter_pos(int);
+        let register = self.registers.IRQ_PENDING[register_num].read();
+        is_bit_set!(register, offset)
     }
 }

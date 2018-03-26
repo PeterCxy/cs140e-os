@@ -37,7 +37,13 @@ impl Timer {
     /// interrupts for timer 1 are enabled and IRQs are unmasked, then a timer
     /// interrupt will be issued in `us` microseconds.
     pub fn tick_in(&mut self, us: u32) {
-        unimplemented!()
+        // Acknowledge the previous interrupts (Timer 1)
+        self.registers.CS.and_mask(1 << 1);
+        // We convert u64 to avoid overflow
+        let timer_val = (self.registers.CLO.read() as u64) + (us as u64);
+        // if timer_val is larger than maximum value of u32, it will
+        // chop off the high 32 bits, which is exactly how the timer works
+        self.registers.COMPARE[1].write(timer_val as u32);
     }
 }
 
@@ -66,5 +72,5 @@ pub fn spin_sleep_ms(ms: u64) {
 /// interrupts for timer 1 are enabled and IRQs are unmasked, then a timer
 /// interrupt will be issued in `us` microseconds.
 pub fn tick_in(us: u32) {
-    unimplemented!()
+    Timer::new().tick_in(us);
 }

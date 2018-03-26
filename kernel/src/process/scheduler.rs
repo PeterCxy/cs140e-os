@@ -6,6 +6,8 @@ use process::{Process, State, Id};
 use traps::TrapFrame;
 use start_shell;
 
+use pi::{timer, interrupt};
+
 /// The `tick` time.
 // FIXME: When you're ready, change this to something more reasonable.
 pub const TICK: u32 = 2 * 1000 * 1000;
@@ -39,7 +41,9 @@ impl GlobalScheduler {
     /// using timer interrupt based preemptive scheduling. This method should
     /// not return under normal conditions.
     pub fn start(&self) {
-        // TODO: Test code. Remove when finishing next phase.
+        // TODO: Test code. Remove when finishing next phase
+        interrupt::Controller::new().enable(interrupt::Interrupt::Timer1);
+        timer::tick_in(TICK);
         Process::new()
             .map(|mut shell_process| {
                 // Pass the stack pointer

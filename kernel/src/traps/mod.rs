@@ -45,6 +45,12 @@ pub struct Info {
 /// the trap frame for the exception.
 #[no_mangle]
 pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
+    if info.kind == Kind::Irq {
+        if Controller::new().is_pending(Interrupt::Timer1) {
+            handle_irq(Interrupt::Timer1, tf);
+            return;
+        }
+    }
     let exception_syndrome = Syndrome::from(esr);
     kprintln!("---- Exception ----");
     kprintln!("info: {:?}", info);
