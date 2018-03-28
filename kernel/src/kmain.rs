@@ -68,9 +68,35 @@ pub extern "C" fn kmain() {
 #[no_mangle]
 #[cfg(not(test))]
 pub extern "C" fn start_shell() {
+    process::Process::create_process(start_test_process as *const ())
+        .map(|p| SCHEDULER.add(p)).unwrap();
+    process::Process::create_process(start_test_process_2 as *const ())
+        .map(|p| SCHEDULER.add(p)).unwrap();
     console::kprintln!("Hello world from user space!");
 
     loop {
         shell::shell("$ ");
+    }
+}
+
+#[no_mangle]
+#[cfg(not(test))]
+pub extern "C" fn start_test_process() {
+    let mut i = 0;
+    loop {
+        pi::timer::spin_sleep_ms(200);
+        console::kprintln!("test {}", i);
+        i += 1;
+    }
+}
+
+#[no_mangle]
+#[cfg(not(test))]
+pub extern "C" fn start_test_process_2() {
+    let mut i = 0;
+    loop {
+        pi::timer::spin_sleep_ms(500);
+        console::kprintln!("test2 {}", i);
+        i += 1;
     }
 }

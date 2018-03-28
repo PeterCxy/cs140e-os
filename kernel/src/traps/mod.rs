@@ -52,10 +52,13 @@ pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
         }
     }
     let exception_syndrome = Syndrome::from(esr);
-    kprintln!("---- Exception ----");
-    kprintln!("info: {:?}", info);
-    kprintln!("syndrome: {:?}", exception_syndrome);
-    kprintln!("-------------------");
-    shell::shell("debug> "); // Start debug shell
+
+    if exception_syndrome != Syndrome::WfiWfe {
+        kprintln!("---- Exception ----");
+        kprintln!("info: {:?}", info);
+        kprintln!("syndrome: {:?}", exception_syndrome);
+        kprintln!("-------------------");
+        shell::shell("debug> "); // Start debug shell
+    }
     tf.program_counter += 4; // Jump to the next instruction
 }

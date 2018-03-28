@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
+use std::mem;
 
+use aarch64;
 use console;
 use mutex::Mutex;
 use process::{Process, State, Id};
@@ -41,20 +43,20 @@ impl GlobalScheduler {
     /// using timer interrupt based preemptive scheduling. This method should
     /// not return under normal conditions.
     pub fn start(&self) {
-        // TODO: Test code. Remove when finishing next phase
+        *self.0.lock() = Some(Scheduler::new());
         interrupt::Controller::new().enable(interrupt::Interrupt::Timer1);
         timer::tick_in(TICK);
-        Process::new()
-            .map(|mut shell_process| {
-                // Pass the stack pointer
-                let sp = unsafe {
-                    shell_process.stack.top().as_u64()
-                };
-                shell_process.trap_frame.stack_pointer = sp;
 
-                // The entry address is `start_shell` in `kmain.rs`
-                let entry_addr = start_shell as *const ();
-                shell_process.trap_frame.program_counter = entry_addr as u64;
+        // Bootstrap the first process (init process)
+        Process::create_process(start_shell as *const ())
+            .map(|mut shell_process| {
+                // Clone the trap frame because we have to
+                // pass a copy to context_restore
+                let mut trap_frame_clone = shell_process.trap_frame.clone();
+                let id = self.add(shell_process).unwrap();
+
+                // Bootstrap the thread_id in the cloned trap frame
+                trap_frame_clone.thread_id = id as u64;
 
                 // We don't need to set SPSR because 0 means switching to EL0
                 // and unmasking all the necessary exceptions
@@ -63,7 +65,7 @@ impl GlobalScheduler {
                     asm!("mov x0, $0
                           mov x1, #1
                           bl context_restore"
-                        :: "r"(&*(shell_process.trap_frame)) :: "volatile");
+                        :: "r"(&*trap_frame_clone) :: "volatile");
                 }
             }).expect("WTF");
     }
@@ -79,7 +81,11 @@ struct Scheduler {
 impl Scheduler {
     /// Returns a new `Scheduler` with an empty queue.
     fn new() -> Scheduler {
-        unimplemented!("Scheduler::new()")
+        Scheduler {
+            processes: VecDeque::new(),
+            current: None,
+            last_id: Some(0)
+        }
     }
 
     /// Adds a process to the scheduler's queue and returns that process's ID if
@@ -91,7 +97,26 @@ impl Scheduler {
     /// It is the caller's responsibility to ensure that the first time `switch`
     /// is called, that process is executing on the CPU.
     fn add(&mut self, mut process: Process) -> Option<Id> {
-        unimplemented!("Scheduler::add()")
+        if self.last_id.is_none() {
+            return None;
+        }
+
+        let last_id = self.last_id.unwrap() + 1;
+        process.trap_frame.thread_id = last_id;
+        self.processes.push_back(process);
+
+        if last_id == ::std::u64::MAX {
+            // TODO: implement wrapping for process IDs
+            self.last_id = None;
+        } else {
+            self.last_id = Some(last_id);
+        }
+
+        if self.processes.len() == 1 {
+            self.current = Some(last_id);
+        }
+
+        return Some(last_id);
     }
 
     /// Sets the current process's state to `new_state`, finds the next process
@@ -103,6 +128,46 @@ impl Scheduler {
     /// This method blocks until there is a process to switch to, conserving
     /// energy as much as possible in the interim.
     fn switch(&mut self, new_state: State, tf: &mut TrapFrame) -> Option<Id> {
-        unimplemented!("Scheduler::switch()")
+        if self.current.is_none() {
+            return None;
+        }
+
+        // Save link register for returning into HANDLER
+        // The actual link register for EL0 is saved in PSTATE
+        // `x30` here is for EL1
+        let x30 = tf.general_registers[1];
+
+        // Move the current process to the back of the queue
+        let mut p = self.processes.pop_front().unwrap();
+        p.state = new_state;
+        mem::swap(tf, &mut *(p.trap_frame));
+        self.processes.push_back(p);
+        self.current = None;
+
+        loop {
+            // Find a ready process to execute
+            for i in 0..self.processes.len() {
+                if self.processes[i].is_ready() {
+                    // Process is ready!
+                    let mut process = self.processes.remove(i).unwrap();
+                    let id = process.trap_frame.thread_id as Id;
+                    process.state = State::Running;
+                    // Keep `x30` (link register) from this exception
+                    process.trap_frame.general_registers[1] = x30;
+
+                    // Move its trap frame into `tf`
+                    mem::swap(tf, &mut *(process.trap_frame));
+
+                    // Move it to the front of the queue
+                    self.processes.push_front(process);
+
+                    // Mark it as current
+                    self.current = Some(id);
+                    return self.current.clone();
+                }
+            }
+
+            aarch64::wait_for_interrupt();
+        }
     }
 }

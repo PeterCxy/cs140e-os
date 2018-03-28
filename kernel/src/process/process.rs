@@ -1,5 +1,11 @@
 use traps::TrapFrame;
 use process::{State, Stack};
+use process::state::EventPollFn;
+use std::mem;
+
+fn process_state_poll_nop(_process: &mut Process) -> bool {
+    false
+}
 
 /// Type alias for the type of a process ID.
 pub type Id = u64;
@@ -30,12 +36,25 @@ impl Process {
                         thread_id: 0,
                         program_state: 0,
                         program_counter: 0,
-                        floating_point_resgiters: [0; 32],
-                        general_resgiters: [0; 32]
+                        floating_point_registers: [0; 32],
+                        general_registers: [0; 32]
                     }),
                     stack,
                     state: State::Ready
                 }
+            })
+    }
+
+    // Create process with a given entry point address
+    pub fn create_process(entry: *const ()) -> Option<Process> {
+        Self::new()
+            .map(|mut process| {
+                let sp = unsafe {
+                    process.stack.top().as_u64()
+                };
+                process.trap_frame.stack_pointer = sp;
+                process.trap_frame.program_counter = entry as u64;
+                process
             })
     }
 
@@ -54,6 +73,19 @@ impl Process {
     ///
     /// Returns `false` in all other cases.
     pub fn is_ready(&mut self) -> bool {
-        unimplemented!("Process::is_ready()")
+        let mut poll_fn: EventPollFn = Box::new(process_state_poll_nop);
+        match self.state {
+            State::Ready => return true,
+            State::Running => return false,
+            State::Waiting(ref mut f) => {
+                mem::swap(f, &mut poll_fn);
+            }
+        }
+
+        let ret = poll_fn(self);
+        if let State::Waiting(ref mut f) = self.state {
+            mem::swap(f, &mut poll_fn);
+        }
+        return ret;
     }
 }

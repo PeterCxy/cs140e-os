@@ -115,11 +115,10 @@ context_save:
     // needed to restore the execution state
     // The total size is 800 bytes.
     // 64-bit registers
-    // It is our responsibility to save `x0` and `lr` __again__
-    // the ones saved in `HANDLER` has no relationship with ours
+    // It is our responsibility to save `lr` __again__
+    // the ones saved in `HANDLER` has nothing to do with ours
     // `context_save` is also a routine, it MUST save `lr`
     // if it wants to call some other routines.
-    stp     x0, x30, [SP, #-16]!
     stp     x1, x2, [SP, #-16]!
     stp     x3, x4, [SP, #-16]!
     stp     x5, x6, [SP, #-16]!
@@ -134,7 +133,7 @@ context_save:
     stp     x23, x24, [SP, #-16]!
     stp     x25, x26, [SP, #-16]!
     stp     x27, x28, [SP, #-16]!
-    str     x29, [SP, #-16]! // contains a reserved field of 8 bytes
+    stp     x29, x30, [SP, #-16]!
 
     // 128-bit registers
     stp     q0, q31, [SP, #-32]!
@@ -200,7 +199,7 @@ context_restore:
     ldp     q0, q31, [x0], #32
 
     // 64-bit registers
-    ldr     x29, [x0], #16
+    ldp     x29, x30, [x0], #16
     ldp     x27, x28, [x0], #16
     ldp     x25, x26, [x0], #16
     ldp     x23, x24, [x0], #16
@@ -223,7 +222,6 @@ context_restore:
 
     // Restore the remaining registers
     ldp     x1, x2, [x0], #16
-    ldp     x0, x30, [x0] // Finally overwrite x0 with restored context
 
     // Reset SP to _start
     // x30 is not used anyway if we `eret`, just use it for intermediate values
@@ -236,7 +234,8 @@ context_restore:
 context_restore_return:
     // Restore the remaining registers
     ldp     x1, x2, [x0], #16
-    ldp     x0, x30, [x0] // Finally overwrite x0 with restored context
+
+    mov     SP, x0
     ret
 
 #define HANDLER(source, kind) \

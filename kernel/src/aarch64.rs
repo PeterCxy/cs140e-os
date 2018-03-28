@@ -31,6 +31,13 @@ pub fn sp_sel() -> u8 {
     (ptr & 1) as u8
 }
 
+#[inline(always)]
+pub fn wait_for_interrupt() {
+    unsafe {
+        asm!("wfi");
+    }
+}
+
 /// Returns the core currently executing.
 ///
 /// # Safety

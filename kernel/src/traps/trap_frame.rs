@@ -5,6 +5,6 @@ pub struct TrapFrame {
     pub thread_id: u64,        // TPIDR_ELs
     pub program_state: u64,   // SPSR_ELx
     pub program_counter: u64, // ELR_ELx
-    pub floating_point_resgiters: [u128; 32], // Order: TODO
-    pub general_resgiters: [u64; 32] // Order: TODO (general_resgiters[30] is "reserved" field)
+    pub floating_point_registers: [u128; 32], // Order: TODO
+    pub general_registers: [u64; 32] // Order: TODO (general_resgiters[30] is "reserved" field)
 }
