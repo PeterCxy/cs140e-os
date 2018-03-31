@@ -6,6 +6,7 @@ use std::str;
 use std::path::{Path, PathBuf};
 use fat32::vfat::*;
 use fat32::traits::{FileSystem, Entry, Dir, Metadata, Timestamp};
+use traps::syscall;
 use super::FILE_SYSTEM;
 
 const SHELL_WELCOME: &'static str = r#"
@@ -74,7 +75,8 @@ static SHELL_CMDS: &'static [&'static ShellCmd] = &[
     &PwdCmd,
     &CatCmd,
     &CurrentELCmd,
-    &ExceptionCmd
+    &ExceptionCmd,
+    &SleepCmd
 ];
 
 // Process a command received from shell
@@ -453,5 +455,33 @@ impl ShellCmd for CurrentELCmd {
             aarch64::current_el()
         };
         kprintln!("current excepton level: {}", el);
+    }
+}
+
+/*
+ * $ sleep n
+ * sleep for n milliseconds
+ */
+struct SleepCmd;
+impl ShellCmd for SleepCmd {
+    fn name(&self) -> &'static str {
+        "sleep"
+    }
+
+    fn exec(&self, pwd: &mut PathBuf, args: &Command) {
+        use self::str::FromStr;
+        if args.arguments().len() != 1 {
+            kprintln!("error: `sleep` takes exactly one argument");
+            return;
+        }
+        let ms = <u32>::from_str(args.arguments()[0]);
+        if ms.is_err() {
+            kprintln!("error: invalid argument");
+            return;
+        }
+        let ms = ms.unwrap();
+        kprintln!("sleeping for {} ms", ms);
+        let slept = syscall::call_sleep(ms);
+        kprintln!("slept {} ms", slept);
     }
 }

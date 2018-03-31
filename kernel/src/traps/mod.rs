@@ -1,7 +1,7 @@
 mod irq;
 mod trap_frame;
 mod syndrome;
-mod syscall;
+pub mod syscall;
 
 use pi::interrupt::{Controller, Interrupt};
 
@@ -53,7 +53,9 @@ pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
     }
     let exception_syndrome = Syndrome::from(esr);
 
-    if exception_syndrome != Syndrome::WfiWfe {
+    if let Syndrome::Svc(num) = exception_syndrome {
+        handle_syscall(num, tf);
+    } else if exception_syndrome != Syndrome::WfiWfe {
         kprintln!("---- Exception ----");
         kprintln!("info: {:?}", info);
         kprintln!("syndrome: {:?}", exception_syndrome);
